@@ -28,6 +28,7 @@
 @endsection
 
 @push('script')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var ctx = document.getElementById('salesChart').getContext('2d');
@@ -35,39 +36,45 @@
 
             console.log(salesData); // Tambahkan ini untuk memeriksa data
 
-            var monthNames = [
-                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-            ];
+            var brands = [];
+            var pendingQuantities = [];
+            var confirmedQuantities = [];
 
-            var months = Array.from(new Set([
-                ...Object.keys(salesData.pending),
-                ...Object.keys(salesData.confirmed),
-            ])); // Mengambil semua bulan yang ada
+            // Loop through the sales data to populate the arrays
+            Object.keys(salesData.pending).forEach(function(month) {
+                salesData.pending[month].forEach(function(data) {
+                    brands.push(data.umkm_name);
+                    pendingQuantities.push(data.total_quantity_sold);
+                });
+            });
 
-            // Mengonversi nomor bulan menjadi nama bulan
-            var monthLabels = months.map(month => monthNames[parseInt(month) - 1] || month);
+            Object.keys(salesData.confirmed).forEach(function(month) {
+                salesData.confirmed[month].forEach(function(data) {
+                    // Assuming we want to merge pending and confirmed quantities for the same brands
+                    var index = brands.indexOf(data.umkm_name);
+                    if (index > -1) {
+                        confirmedQuantities[index] = data.total_quantity_sold;
+                    } else {
+                        brands.push(data.umkm_name);
+                        confirmedQuantities.push(data.total_quantity_sold);
+                    }
+                });
+            });
 
-            var pendingData = months.map(month => salesData.pending[month] || 0);
-            var confirmedData = months.map(month => salesData.confirmed[month] || 0);
-
+            // Create chart
             new Chart(ctx, {
-                type: 'line', // Jenis grafik (line, bar, pie, dll.)
+                type: 'bar', // Jenis grafik (bar)
                 data: {
-                    labels: monthLabels, // Label sumbu X (bulan dalam teks)
-                    datasets: [{
-                        label: 'Pending',
-                        data: pendingData, // Data penjualan Pending
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)', // Warna latar belakang
-                        borderColor: 'rgba(255, 99, 132, 1)', // Warna garis
-                        borderWidth: 1
-                    }, {
-                        label: 'Sudah Dikonfirmasi',
-                        data: confirmedData, // Data penjualan Sudah Dikonfirmasi
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)', // Warna latar belakang
-                        borderColor: 'rgba(75, 192, 192, 1)', // Warna garis
-                        borderWidth: 1
-                    }]
+                    labels: brands, // Label sumbu X (nama brand)
+                    datasets: [
+                        {
+                            label: 'Total Terjual',
+                            data: confirmedQuantities, // Data penjualan Total Terjual
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)', // Warna latar belakang
+                            borderColor: 'rgba(75, 192, 192, 1)', // Warna garis
+                            borderWidth: 1
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,

@@ -13,9 +13,21 @@ class DashboardController extends Controller
         // Inisialisasi variabel untuk data penjualan
 
         $salesData = [
-            'pending' => [],
             'confirmed' => [],
         ];
+
+        $salesData['confirmed'] = DB::table('order')
+            ->selectRaw('MONTH(order.created_at) as month, brands.name as umkm_name, SUM(order_detail.qty) as total_quantity_sold')
+            ->join('order_detail', 'order_detail.order_id', '=', 'order.id')
+            ->join('products', 'products.id', '=', 'order_detail.product_id')
+            ->join('brands', 'brands.id', '=', 'products.brand_id')
+            ->join('users', 'users.id', '=', 'brands.users_id')
+            ->whereIn('order.status', ['SUDAH DIKONFIRMASI', 'Sudah Dikonfirmasi'])
+            ->groupBy('month', 'brands.name')
+            ->get()
+            ->groupBy('month')
+            ->toArray();
+
         if (Auth::user()->hasRole('super admin')) {
             // Logika untuk super admin
             $product = DB::table('products')
@@ -37,22 +49,6 @@ class DashboardController extends Controller
                 ->whereIn('order.status', ['PENDING', 'pending'])
                 ->first();
 
-            // Query untuk grafik penjualan
-            $salesData['pending'] = DB::table('order')
-                ->selectRaw('MONTH(created_at) as month, SUM(total_price) as total_sales')
-                ->whereIn('order.status', ['PENDING', 'pending'])
-                ->groupBy('month')
-                ->get()
-                ->pluck('total_sales', 'month')
-                ->toArray();
-
-            $salesData['confirmed'] = DB::table('order')
-                ->selectRaw('MONTH(created_at) as month, SUM(total_price) as total_sales')
-                ->whereIn('order.status', ['SUDAH DIKONFIRMASI', 'Sudah Dikonfirmasi'])
-                ->groupBy('month')
-                ->get()
-                ->pluck('total_sales', 'month')
-                ->toArray();
         } elseif (Auth::user()->hasRole('brand')) {
             // Logika untuk brand
             $product = DB::table('products')
@@ -95,32 +91,7 @@ class DashboardController extends Controller
                 ->groupBy('brands.id', 'brands.name')
                 ->first();
 
-            // Query untuk grafik penjualan
-            $salesData['pending'] = DB::table('order')
-                ->selectRaw('MONTH(order.created_at) as month, SUM(order.total_price) as total_sales')
-                ->join('order_detail', 'order_detail.order_id', '=', 'order.id')
-                ->join('products', 'products.id', '=', 'order_detail.product_id')
-                ->join('brands', 'brands.id', '=', 'products.brand_id')
-                ->join('users', 'users.id', '=', 'brands.users_id')
-                ->where('users.id', Auth::user()->id)
-                ->whereIn('order.status', ['PENDING', 'pending'])
-                ->groupBy('month')
-                ->get()
-                ->pluck('total_sales', 'month')
-                ->toArray();
-
-            $salesData['confirmed'] = DB::table('order')
-                ->selectRaw('MONTH(order.created_at) as month, SUM(order.total_price) as total_sales')
-                ->join('order_detail', 'order_detail.order_id', '=', 'order.id')
-                ->join('products', 'products.id', '=', 'order_detail.product_id')
-                ->join('brands', 'brands.id', '=', 'products.brand_id')
-                ->join('users', 'users.id', '=', 'brands.users_id')
-                ->where('users.id', Auth::user()->id)
-                ->whereIn('order.status', ['SUDAH DIKONFIRMASI', 'Sudah Dikonfirmasi'])
-                ->groupBy('month')
-                ->get()
-                ->pluck('total_sales', 'month')
-                ->toArray();
+            
         }
 
 

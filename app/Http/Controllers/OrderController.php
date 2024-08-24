@@ -89,7 +89,7 @@ class OrderController extends Controller
             ->where('id', $request->id)
             ->update([
                 'foto' => $path,
-                'status' => 'pending'
+                'status' => 'Menunggu Proses'
             ]);
 
         // Cek hasil update
